@@ -1,0 +1,407 @@
+---
+title: "Network Society Data Analysis"
+output: html_networksociety
+---
+
+```{r}
+library(ggplot2)
+library(multilevel)
+library(mediation)
+```
+
+
+This is a notebook for the data analysis of the Network Society assignment
+
+
+Authors:
+
+Sophia Hadash - 0806986
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Part 1. Pre-processing
+
+- Remove unnessesary columns
+- Calculate scale factors
+
+```{r}
+
+#load the dataset
+df = read.csv("data.csv", header = TRUE)
+
+#remove columns that we don't need
+df$submitdate <- NULL
+df$startdate <- NULL
+df$datestamp <- NULL
+df$startlanguage <- NULL
+df$refurl <- NULL
+
+#rename and label gender
+df$gender <- df$dem1
+df$dem1 <- NULL
+df$gender <- factor(df$gender,
+levels = c(1,2,3),
+labels = c("male", "female", "other"))
+
+#rename age
+df$age <- df$dem2
+df$dem2 <- NULL
+
+#rename fbx
+df$internet_usage <- df$fb1
+#df$fb1 <- NULL
+df$nfriends <- df$fb2
+df$nactualfriends <- df$fb3
+df$fb3 <- NULL
+df$facebook_usage <- df$fb4
+#df$fb4 <- NULL
+df$facebook_usage_perday <- df$fb5
+
+
+df$selfdisclosure_private <- (df$fbchat_sqi1 + df$fbchat_sqi2 + df$fbchat_sqi3 + df$fbchat_sqi4 + df$fbchat_sqi5 + df$fbchat_sqs1 + df$fbchat_sqs2 + df$fbchat_sqs3 + df$fbchat_sqs4 + df$fbchat_sqs5)/10
+df$fbchat_sqi1 <- NULL
+df$fbchat_sqi2 <- NULL
+df$fbchat_sqi3 <- NULL
+df$fbchat_sqi4 <- NULL
+df$fbchat_sqi5 <- NULL
+df$fbchat_sqs1 <- NULL
+df$fbchat_sqs2 <- NULL
+df$fbchat_sqs3 <- NULL
+df$fbchat_sqs4 <- NULL
+df$fbchat_sqs5 <- NULL
+
+df$selfdisclosure_public <- (df$fbstatus_sqi1 + df$fbstatus_sqi2 + df$fbstatus_sqi3 + df$fbstatus_sqi4 + df$fbstatus_sqi5 + df$fbstatus_sqs1 + df$fbstatus_sqs2 + df$fbstatus_sqs3 + df$fbstatus_sqs4 + df$fbstatus_sqs5)/10
+df$fbstatus_sqi1 <- NULL
+df$fbstatus_sqi2 <- NULL
+df$fbstatus_sqi3 <- NULL
+df$fbstatus_sqi4 <- NULL
+df$fbstatus_sqi5 <- NULL
+df$fbstatus_sqs1 <- NULL
+df$fbstatus_sqs2 <- NULL
+df$fbstatus_sqs3 <- NULL
+df$fbstatus_sqs4 <- NULL
+df$fbstatus_sqs5 <- NULL
+
+df$hiddenchat <- NULL
+df$hiddenstatus2 <- NULL
+df$hiddencheck <- NULL
+df$hiddencheck2 <- NULL
+
+df$ib1_sq1 <- NULL
+df$ib1_sq2 <- NULL
+df$ib1_sq3 <- NULL
+df$ib1_sq4 <- NULL
+df$ib1_sq5 <- NULL
+df$ib1_sq6 <- NULL
+
+df$loneliness <- scale(df$lo1_sq1 + df$lo1_sq2 + df$lo1_sq3)
+df$lo1_sq1 <- NULL
+df$lo1_sq2 <- NULL
+df$lo1_sq3 <- NULL
+
+df$se1_sq01 <- NULL
+df$se1_sq04 <- NULL
+df$se1_sq05 <- NULL
+df$se1_sq06 <- NULL
+df$se1_sq08 <- NULL
+df$se1_sq10 <- NULL
+
+df$hiddenfbsuint <- NULL
+df$hiddenfbsuintcheck <- NULL
+
+df$pc01_sq1 <- NULL
+df$pc01_sq2 <- NULL
+df$pc01_sq3 <- NULL
+df$pc01_sq4 <- NULL
+
+df$sis <- (df$frmbsis_sis1 + df$frmbsis_sis2 + df$frmbsis_sis3 + df$sis4)/4
+df$frmbsis_sis1 <- NULL
+df$frmbsis_sis2 <- NULL
+df$frmbsis_sis3 <- NULL
+df$sis4 <- NULL
+
+df$ifrmb <- scale(df$frmbsis_frmb1 + df$frmbsis_frmb2 + df$frmbsis_frmb3 + df$frmbsis_frmb4
+                                              + df$frmbsis_frmb5)
+df$frmbsis_frmb1 <- NULL
+df$frmbsis_frmb2 <- NULL
+df$frmbsis_frmb3 <- NULL
+df$frmbsis_frmb4 <- NULL
+df$frmbsis_frmb5 <- NULL
+
+df$fbi <- scale(df$frmbsis_fbi1 + df$frmbsis_fbi2 + df$frmbsis_fbi4 + df$frmbsis_fbi5) + scale(df$fb2) + scale(df$fb5)
+df$frmbsis_fbi1 <- NULL
+df$frmbsis_fbi2 <- NULL
+df$frmbsis_fbi4 <- NULL
+df$frmbsis_fbi5 <- NULL
+df$fb2 <- NULL
+df$fb5 <- NULL
+
+df$ofrmb <- scale(df$generaldc_idc1 + df$generaldc_idc2 + df$generaldc_idc3 + df$generaldc_idc4 + df$generaldc_idc5)
+df$generaldc_idc1 <- NULL
+df$generaldc_idc2 <- NULL
+df$generaldc_idc3 <- NULL
+df$generaldc_idc4 <- NULL
+df$generaldc_idc5 <- NULL
+
+df$dfrmb = (df$ofrmb - df$ifrmb)
+
+df$nationality[df$dem4 == 40] = 0
+df$nationality[df$dem4 == 1] = 1
+df$nationality[is.na(df$nationality)] = 2
+df$nationality = factor(df$nationality,
+levels = c(0,1,2),
+labels = c("dutch", "afghan", "other"))
+df$dem4 <- NULL
+df$dem4_other <- NULL
+df$thank <- NULL
+
+df$pg1 <- NULL
+df$pg2 <- NULL
+df$pg3 <- NULL
+df$pg4 <- NULL
+df$pg5 <- NULL
+df$pg6 <- NULL
+df$pg7 <- NULL
+df$pg8 <- NULL
+df$pg9 <- NULL
+df$pg10 <- NULL
+df$pg11 <- NULL
+df$pg12 <- NULL
+df$pg13 <- NULL
+df$pg14 <- NULL
+df$pg15 <- NULL
+df$pg16 <- NULL
+df$pg17 <- NULL
+df$pg18 <- NULL
+df$pg19 <- NULL
+df$pg20 <- NULL
+df$pg21 <- NULL
+df$pg22 <- NULL
+
+
+df$rg1 <- NULL
+df$rg2 <- NULL
+df$rg3 <- NULL
+df$rg4 <- NULL
+df$rg5 <- NULL
+df$rg6 <- NULL
+df$rg8 <- NULL
+df$rg10 <- NULL
+df$rg11 <- NULL
+df$rg13 <- NULL
+df$rg14 <- NULL
+df$rg17 <- NULL
+df$rg18 <- NULL
+df$rg7 <- as.numeric(factor(df$rg7, labels = c(0, 0, 1)))-1
+df$rg9 <- as.numeric(factor(df$rg9, labels = c(0, 0, 1)))-1
+df$rg12 <- as.numeric(factor(df$rg12, labels = c(0, 0, 1)))-1
+df$rg15 <- as.numeric(factor(df$rg15, labels = c(0, 0, 1)))-1
+df$rg16 <- as.numeric(factor(df$rg16, labels = c(0, 0, 1)))-1
+df$social_capital_tot <- (df$rg7+df$rg9+df$rg12+df$rg15+df$rg16)
+df$social_capital <- scale(df$social_capital_tot)
+df$rg7 <- NULL
+df$rg9 <- NULL
+df$rg12 <- NULL
+df$rg15 <- NULL
+df$rg16 <- NULL
+
+#data types
+df$fbi = as.numeric(df$fbi)
+df$loneliness = as.numeric(df$loneliness)
+df$ifrmb = as.numeric(df$ifrmb)
+df$ofrmb = as.numeric(df$ofrmb)
+df$dfrmb = as.numeric(df$dfrmb)
+df$social_capital = as.numeric(df$social_capital)
+str(df)
+
+```
+
+Descriptive statistics
+- Run prior to removing incomplete data for the graphs
+- Run after removing incomplete data, but prior to the second cleanup, for the descriptives
+
+```{r}
+#gender
+table(df$gender)
+
+#nationality
+table(df$nationality)
+
+#interview time
+print('interview time')
+table(df$interviewtime[df$interviewtime < 500])
+
+#education level
+print('education')
+mean(df$Education)
+sd(df$Education)
+
+#internet usage
+print('internet usage')
+mean(df$fb1)
+sd(df$fb1)
+
+#internet usage
+print('facebook usage')
+mean(df$fb4)
+sd(df$fb4)
+
+#age
+ggplot(df,aes(x=age))+
+  geom_histogram(position="identity",binwidth=1,colour="black")+
+  theme_light()
+print('age')
+mean(df$age, na.rm=TRUE)
+sd(df$age, na.rm=TRUE)
+range(df$age, na.rm=TRUE)
+
+#loneliness
+ggplot(df,aes(x=loneliness))+
+  geom_histogram(position="identity",binwidth=1,colour="black")+
+  theme_light()
+
+#fbi
+ggplot(df,aes(x=fbi))+
+  geom_histogram(position="identity",binwidth=.25,colour="black")+
+  theme_light()
+print('fbi')
+mean(df$fbi)
+sd(df$fbi)
+
+#frmb
+ggplot(df,aes(x=ifrmb))+
+  geom_histogram(position="identity",binwidth=.25,colour="black")+
+  theme_light()
+ggplot(df,aes(x=ofrmb))+
+  geom_histogram(position="identity",binwidth=.25,colour="black")+
+  theme_light()
+ggplot(df,aes(x=dfrmb))+
+  geom_histogram(position="identity",binwidth=.25,colour="black")+
+  theme_light()
+
+#social capital
+ggplot(df,aes(x=social_capital_tot))+
+  geom_histogram(position="identity",binwidth=1,colour="black")+
+  theme_light()
+
+
+```
+
+Remove incomplete data
+- Remove rows with incomplete data
+
+```{r}
+#remove incomplete submissions
+df = df[df$lastpage >=17,]
+
+#people that took ages to complete the survey
+df = df[df$interviewtime <9000,] #remove too long
+df = df[df$interviewtime >450,] #remove too fast
+
+#remove cases with missing values
+df = df[complete.cases(df), ]
+
+```
+
+- Continue data cleanup after descriptive statistics
+
+```{r}
+#continue cleanup
+df$lastpage <- NULL
+df$interviewtime <- NULL
+df$fb1 <- NULL
+df$fb4 <- NULL
+```
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Part 1. Analysis
+
+- Mediation analysis
+
+```{r}
+
+# mediation analysis -------------------------------------------------
+
+# WITHOUT MODERATOR
+
+#is there a direct effect without mediation of fbi on loneliness
+model.0 <- lm(loneliness ~ fbi + age, df)
+summary(model.0)
+
+#is there an effect of fbi on the mediator social capital?
+model.M <- lm(social_capital ~ fbi, df)
+summary(model.M)
+
+#is there an effect of the mediator social capital on loneliness?
+model.Y <- lm(loneliness ~ social_capital + fbi, df)
+summary(model.Y)
+
+# is the mediation statistically significant?  ab, c, c'
+results <- mediate(model.M, model.Y, treat='fbi', mediator='social_capital', boot=TRUE, sims=500)
+summary(results)
+
+#conclusion:
+# there is no significant mediation of fbi on loneliness through bonding social capital
+# there is also no direct effect of fbi on loneliness
+# however, there is a significant effect of fbi on bonding social capital
+
+
+# WITH MODERATOR
+
+b.int <- lm(social_capital ~ fbi*age, data=df)
+summary(b.int)
+d.int <- lm(loneliness ~ fbi*social_capital*age, data=df)
+summary(d.int)
+contcont.age20 <- mediate(b.int, d.int, sims=10000, treat="fbi", mediator="social_capital",
+			covariates = list(age = 20), boot=TRUE, boot.ci.type = "bca")
+contcont.age60 <- mediate(b.int, d.int, sims=10000, treat="fbi", mediator="social_capital",
+			covariates = list(age = 60), boot=TRUE, boot.ci.type = "bca")
+summary(contcont.age20)
+summary(contcont.age60)
+plot(contcont.age20, xlim = c(-.2,.2))
+plot(contcont.age60, xlim = c(-.2,.2))
+
+```
+
+- other analyses
+
+```{r}
+
+# regression of dFRMB on loneliness ------------------------------------
+model.frmb.1 <- lm(loneliness ~ dfrmb, df)
+summary(model.frmb.1)
+model.frmb.2 <- lm(loneliness ~ dfrmb*age, df)
+summary(model.frmb.2)
+model.frmb.4 <- lm(loneliness ~ age + social_capital + social_capital*age, df)
+summary(model.frmb.4)
+
+# dfrmb on sis
+model.frmb.3 <- lm(sis ~ dfrmb, df)
+summary(model.frmb.3)
+
+# correlation between ofrmb and ifrmb
+cor(df$ifrmb, df$ofrmb)
+
+#effect of gender
+model.loneliness.gender <- lm(loneliness ~ gender, df)
+summary(model.loneliness.gender)
+model.sc.gender <- lm(social_capital ~ gender, df)
+summary(model.sc.gender)
+
+
+# other regressions
+d.int1 <- lm(loneliness ~ social_capital*age, data=df)
+summary(d.int1)
+d.int2 <- lm(loneliness ~ age, data=df)
+summary(d.int2)
+d.int3 <- lm(fbi ~ age, data=df)
+summary(d.int3)
+
+
+# multiple regression (explorative) ------------------------------------
+model.exp <- lm(loneliness ~ dfrmb + fbi + sis + gender + age + selfdisclosure_private + selfdisclosure_public, df)
+summary(model.exp)
+```
+
